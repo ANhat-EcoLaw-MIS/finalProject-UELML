@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_macros.html" import shelf, icon %}
+{% block title %}Đơn {{ o.id }}{% endblock %}
+{% block content %}
+<section class="panel confirm">
+  <p class="ok-mark">{{ icon('check') }}</p>
+  <h1>Đặt hàng thành công</h1>
+  <p class="muted">Mã đơn <b>{{ o.id }}</b> · {{ o.date }} · {{ payment[o.payment] }} · {{ shipping[o.shipping][0] }}</p>
+  <div class="order-items">
+    {% for i in o['items'] %}<p class="row small"><span>{{ i.qty }} × {{ i.name }}{% if i.size %} ({{ i.size }}){% endif %}</span><span>{{ (i.price_vnd * i.qty) | vnd }}</span></p>{% endfor %}
+    <p class="row small"><span>Vận chuyển</span><span>{% if o.shipping_fee %}{{ o.shipping_fee | vnd }}{% else %}Miễn phí{% endif %}</span></p>
+    <p class="row"><span>Tổng cộng</span><b>{{ o.total | vnd }}</b></p>
+  </div>
+  <p class="transition">
+    Tình huống: <span class="scen scen-{{ o.scenario_before }}">{{ label[o.scenario_before] }}</span>
+    → <span class="scen scen-{{ o.scenario_after }}">{{ label[o.scenario_after] }}</span>
+  </p>
+  <div class="hero-actions"><a class="btn" href="{{ url_for('index') }}">Xem gợi ý mới trên trang chủ</a><a class="btn ghost" href="{{ url_for('profile') }}">Lịch sử mua</a></div>
+</section>
+<h2 class="section-title">Gợi ý đã được cập nhật theo đơn vừa mua</h2>
+{% for sh in shelves %}{{ shelf(sh, surface) }}{% endfor %}
+{% endblock %}

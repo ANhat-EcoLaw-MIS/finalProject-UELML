@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_macros.html" import card %}
+{% block title %}Sản phẩm{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{% if q %}Kết quả cho “{{ q }}”{% else %}Sản phẩm{% endif %} <small>{{ total }} sản phẩm</small></h1>
+  <form class="filters" method="get">
+    {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+    <select name="group" aria-label="Nhóm hàng" onchange="this.form.submit()">
+      <option value="">Tất cả nhóm</option>
+      {% for g, name, n in all_groups %}<option value="{{ g }}"{{ ' selected' if g == group }}>{{ name }} ({{ n }})</option>{% endfor %}
+    </select>
+    <select name="sort" aria-label="Sắp xếp" onchange="this.form.submit()">
+      <option value="popular"{{ ' selected' if sort == 'popular' }}>Bán chạy</option>
+      <option value="price_asc"{{ ' selected' if sort == 'price_asc' }}>Giá tăng dần</option>
+      <option value="price_desc"{{ ' selected' if sort == 'price_desc' }}>Giá giảm dần</option>
+    </select>
+    <noscript><button class="btn sm">Lọc</button></noscript>
+  </form>
+</div>
+<div class="chips">
+  <a class="chip{{ ' on' if not group }}" href="{{ url_for('products', q=q or None, sort=sort) }}">Tất cả</a>
+  {% for g, name, n in all_groups[:9] %}<a class="chip{{ ' on' if g == group }}" href="{{ url_for('products', group=g, q=q or None, sort=sort) }}">{{ name }}</a>{% endfor %}
+</div>
+{% if items %}
+<div class="grid">{% for it in items %}{{ card(it, 'catalog') }}{% endfor %}</div>
+{% if pages > 1 %}
+<nav class="pager" aria-label="Trang">
+  {% if page > 1 %}<a class="btn ghost sm" href="{{ url_for('products', group=group or None, q=q or None, sort=sort, page=page-1) }}">‹ Trước</a>{% endif %}
+  <span>Trang {{ page }} / {{ pages }}</span>
+  {% if page < pages %}<a class="btn ghost sm" href="{{ url_for('products', group=group or None, q=q or None, sort=sort, page=page+1) }}">Sau ›</a>{% endif %}
+</nav>
+{% endif %}
+{% else %}
+<p class="empty">Không tìm thấy sản phẩm phù hợp. <a class="link" href="{{ url_for('products') }}">Xoá bộ lọc</a></p>
+{% endif %}
+{% endblock %}

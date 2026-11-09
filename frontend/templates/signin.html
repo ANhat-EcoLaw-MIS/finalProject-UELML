@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Đăng nhập{% endblock %}
+{% block content %}
+<div class="auth">
+  <form method="post" class="panel" novalidate>
+    <h1>Đăng nhập</h1>
+    {% if error %}<p class="flash flash-error">{{ error }}</p>{% endif %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <label>Email<input name="email" type="email" autocomplete="email" required value="{{ request.form.get('email', '') }}"></label>
+    <label>Mật khẩu<input name="password" type="password" autocomplete="current-password" required></label>
+    <button class="btn wide">Đăng nhập</button>
+    <p class="small muted center">Chưa có tài khoản? <a class="link" href="{{ url_for('signup') }}">Đăng ký</a></p>
+  </form>
+  <div class="panel">
+    <h2>Hoặc vào bằng khách mẫu</h2>
+    <p class="small muted">Chọn khách mẫu để xem đúng tình huống gợi ý.</p>
+    <form method="post" action="{{ url_for('demo_login', who='cold', next=next or None) }}" class="demo-pick">
+      <button><b>Khách mới</b><span>Chưa mua gì · chỉ thấy mục Bán chạy 7 ngày</span></button>
+    </form>
+    {% for d in demo_users %}
+    <form method="post" action="{{ url_for('demo_login', who=d.id, next=next or None) }}" class="demo-pick">
+      <button><b>{{ d.name }}</b><span>{{ d.note }} · mã {{ d.id }}</span></button>
+    </form>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

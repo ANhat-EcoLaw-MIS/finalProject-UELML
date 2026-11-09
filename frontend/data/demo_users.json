@@ -1,0 +1,20 @@
+[
+ {
+  "id": "24807",
+  "name": "Khách mua ít",
+  "segment": "light",
+  "note": "4 lượt mua · gợi ý dựa trên vài món đầu tiên"
+ },
+ {
+  "id": "121011",
+  "name": "Khách hay mua lại",
+  "segment": "heavy",
+  "note": "55 lượt mua · 11 món mua lặp lại"
+ },
+ {
+  "id": "11250",
+  "name": "Khách thích khám phá",
+  "segment": "heavy",
+  "note": "42 lượt mua · 24 loại sản phẩm khác nhau"
+ }
+]

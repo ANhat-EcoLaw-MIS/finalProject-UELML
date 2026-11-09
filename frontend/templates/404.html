@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Không tìm thấy{% endblock %}
+{% block content %}
+<div class="empty big"><h1>Không tìm thấy trang</h1><p class="muted">Trang hoặc sản phẩm này không tồn tại.</p><a class="btn" href="{{ url_for('index') }}">Về trang chủ</a></div>
+{% endblock %}

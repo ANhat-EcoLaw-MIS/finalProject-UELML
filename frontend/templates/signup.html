@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Đăng ký{% endblock %}
+{% macro err(k) %}{% if errors.get(k) %}<span class="err">{{ errors[k] }}</span>{% endif %}{% endmacro %}
+{% block content %}
+<div class="auth single">
+  <form method="post" class="panel" novalidate>
+    <h1>Tạo tài khoản</h1>
+    <p class="small muted">Tài khoản mới chưa có lịch sử mua nên bắt đầu ở tình huống <b>khách mới</b>.</p>
+    <label>Họ tên<input name="name" value="{{ form.name }}" autocomplete="name" required>{{ err('name') }}</label>
+    <label>Email<input name="email" type="email" value="{{ form.email }}" autocomplete="email" required>{{ err('email') }}</label>
+    <label>Mật khẩu<input name="password" type="password" autocomplete="new-password" minlength="6" required>{{ err('password') }}</label>
+    <button class="btn wide">Đăng ký</button>
+    <p class="small muted center">Đã có tài khoản? <a class="link" href="{{ url_for('signin') }}">Đăng nhập</a></p>
+  </form>
+</div>
+{% endblock %}

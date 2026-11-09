@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_macros.html" import media, scenario_badge %}
+{% block title %}Hồ sơ{% endblock %}
+{% block content %}
+<section class="panel profile-head">
+  <div>
+    <h1>{{ user.name }}</h1>
+    <p class="muted small">{% if user.kind == 'demo' %}Khách mẫu · mã khách {{ user.customer_id }}{% if user.note %} · {{ user.note }}{% endif %}
+      {% elif user.kind == 'temp' %}Tài khoản tạm cho demo khách mới{% else %}{{ user.email }}{% endif %}</p>
+  </div>
+  <div class="profile-stats">
+    {{ scenario_badge(scenario) }}
+    <p class="small muted">{{ n_history }} lượt mua trong dữ liệu · {{ scenario.n_web }} món mua trên web</p>
+  </div>
+</section>
+
+<h2 class="section-title">Đơn hàng trên web</h2>
+{% for o in orders %}
+<details class="panel order"{{ ' open' if loop.first }}>
+  <summary><b>{{ o.id }}</b> <span class="muted small">{{ o.date }}</span> <span class="right">{{ o.total | vnd }}</span></summary>
+  {% for i in o['items'] %}<p class="row small"><a href="{{ url_for('product', article_id=i.article_id) }}">{{ i.qty }} × {{ i.name }}{% if i.size %} ({{ i.size }}){% endif %}</a><span>{{ (i.price_vnd * i.qty) | vnd }}</span></p>{% endfor %}
+</details>
+{% else %}<p class="empty small">Chưa có đơn nào trên web.</p>{% endfor %}
+
+<h2 class="section-title">Lịch sử mua trong dữ liệu {% if n_history > 80 %}<small class="muted">(80 lượt gần nhất / {{ n_history }})</small>{% endif %}</h2>
+{% for day, items in history.items() %}
+<div class="hist-day">
+  <p class="small muted">{{ day }}</p>
+  <div class="hist-items">
+    {% for h in items %}<a class="hist-item" href="{{ url_for('product', article_id=h.article_id) }}" title="{{ h.product.name }}">{{ media(h.product) }}<span class="small">{{ h.product.name }}</span></a>{% endfor %}
+  </div>
+</div>
+{% else %}<p class="empty small">Không có lịch sử mua trong dữ liệu (khách mới).</p>{% endfor %}
+{% endblock %}

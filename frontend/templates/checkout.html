@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Thanh toán{% endblock %}
+{% macro err(k) %}{% if errors.get(k) %}<span class="err">{{ errors[k] }}</span>{% endif %}{% endmacro %}
+{% block content %}
+<h1>Thanh toán</h1>
+<form method="post" class="checkout" novalidate>
+  <div class="panel">
+    <h2>Thông tin nhận hàng</h2>
+    <label>Họ tên<input name="name" value="{{ form.name }}" autocomplete="name" required>{{ err('name') }}</label>
+    <label>Số điện thoại<input name="phone" value="{{ form.phone }}" inputmode="tel" autocomplete="tel" placeholder="0901234567" required>{{ err('phone') }}</label>
+    <label>Địa chỉ<textarea name="address" rows="2" autocomplete="street-address" required>{{ form.address }}</textarea>{{ err('address') }}</label>
+    <h2>Vận chuyển</h2>
+    {% for k, (label, fee) in shipping.items() %}
+    <label class="opt"><input type="radio" name="shipping" value="{{ k }}"{{ ' checked' if form.shipping == k }}>
+      <span>{{ label }}</span><b>{% if k == 'standard' and ship_free %}Miễn phí{% else %}{{ fee | vnd }}{% endif %}</b></label>
+    {% endfor %}{{ err('shipping') }}
+    <h2>Thanh toán <small class="muted">(giả lập, không thu tiền)</small></h2>
+    {% for k, label in payment.items() %}
+    <label class="opt"><input type="radio" name="payment" value="{{ k }}"{{ ' checked' if form.payment == k }}><span>{{ label }}</span></label>
+    {% endfor %}{{ err('payment') }}
+  </div>
+  <aside class="summary">
+    <h2>Đơn hàng</h2>
+    {% for l in lines %}<p class="row small"><span>{{ l.qty }} × {{ l.product.name }}{% if l.size %} ({{ l.size }}){% endif %}</span><span>{{ l.total | vnd }}</span></p>{% endfor %}
+    <p class="row"><span>Tiền hàng</span><b>{{ subtotal | vnd }}</b></p>
+    <button class="btn wide" type="submit">Đặt hàng</button>
+    <p class="small muted">Sau khi đặt, gợi ý trên trang chủ sẽ được tính lại ngay theo món bạn vừa mua.</p>
+  </aside>
+</form>
+{% endblock %}

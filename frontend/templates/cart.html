@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "_macros.html" import shelf, media, icon %}
+{% block title %}Giỏ hàng{% endblock %}
+{% block content %}
+<h1>Giỏ hàng <small>{{ cart_count }} sản phẩm</small></h1>
+{% if lines %}
+<div class="cart">
+  <div class="cart-lines">
+    {% for l in lines %}
+    <div class="line">
+      <a href="{{ url_for('product', article_id=l.article_id) }}" class="line-media">{{ media(l.product) }}</a>
+      <div class="line-info">
+        <a class="pc-name" href="{{ url_for('product', article_id=l.article_id) }}">{{ l.product.name }}</a>
+        <p class="small muted">{{ l.product.colour }} · {{ l.product.type_vi }}{% if l.size %} · Size {{ l.size }}{% endif %}</p>
+        <p class="small">{{ l.product.price_vnd | vnd }}</p>
+      </div>
+      <form method="post" action="{{ url_for('cart_update') }}" class="line-qty">
+        <input type="hidden" name="idx" value="{{ l.idx }}">
+        <input type="number" name="qty" value="{{ l.qty }}" min="0" max="10" aria-label="Số lượng" onchange="this.form.submit()">
+        <noscript><button class="btn sm ghost">Cập nhật</button></noscript>
+      </form>
+      <p class="line-total">{{ l.total | vnd }}</p>
+      <form method="post" action="{{ url_for('cart_remove') }}"><input type="hidden" name="idx" value="{{ l.idx }}"><button class="round" aria-label="Xoá">{{ icon('trash') }}</button></form>
+    </div>
+    {% endfor %}
+  </div>
+  <aside class="summary">
+    <h2>Tạm tính</h2>
+    <p class="row"><span>Tiền hàng</span><b>{{ subtotal | vnd }}</b></p>
+    <p class="row"><span>Vận chuyển</span><span>{% if ship_free %}Miễn phí{% else %}Tính khi thanh toán{% endif %}</span></p>
+    {% if not ship_free %}<p class="small muted">Mua thêm {{ (free_from - subtotal) | vnd }} để được miễn phí vận chuyển.</p>{% endif %}
+    <a class="btn wide" href="{{ url_for('checkout') }}">Thanh toán</a>
+    {% if not user %}<p class="small muted center">Bạn cần đăng nhập để thanh toán.</p>{% endif %}
+  </aside>
+</div>
+{% for sh in shelves %}{{ shelf(sh, surface) }}{% endfor %}
+{% else %}
+<p class="empty">Giỏ hàng đang trống. <a class="link" href="{{ url_for('index') }}">Xem gợi ý cho bạn</a></p>
+{% endif %}
+{% endblock %}

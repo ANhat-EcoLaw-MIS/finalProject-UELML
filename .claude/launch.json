@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "stylerec-production",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["frontend/run_production.py"],
+      "port": 5000
+    },
+    {
+      "name": "stylerec-dev",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "flask", "--app", "frontend/app", "run", "--port", "5001"],
+      "port": 5001
+    }
+  ]
+}

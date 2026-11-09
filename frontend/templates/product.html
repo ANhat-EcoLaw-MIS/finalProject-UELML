@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_macros.html" import media, icon %}
+{% block title %}{{ p.name }}{% endblock %}
+{% block content %}
+<nav class="crumbs small"><a href="{{ url_for('products') }}">Sản phẩm</a> › <a href="{{ url_for('products', group=p.group) }}">{{ p.group_vi }}</a> › {{ p.name }}</nav>
+<div class="pdp">
+  {{ media(p, 'pdp-media') }}
+  <div class="pdp-info">
+    {% if p.badges %}<span class="badge-pill static">{{ p.badges[0] }}</span>{% endif %}
+    <h1>{{ p.name }}</h1>
+    <p class="muted">{{ p.type_vi }} · {{ p.index_group }}</p>
+    <p class="pdp-price">{{ p.price_vnd | vnd }}</p>
+    <p class="pdp-colour"><i class="dot big" style="background:{{ p.swatch }}"></i>{{ p.colour }}{% if p.pattern and p.pattern != 'Solid' %} · {{ p.pattern }}{% endif %}</p>
+    {% if bought %}<p class="note">{{ icon('check') }} Bạn đã mua món này {{ bought }} lần.</p>{% endif %}
+    {% if p.sold7 %}<p class="small muted">Đã bán {{ p.sold7 }} sản phẩm trong 7 ngày qua</p>{% endif %}
+    <form method="post" action="{{ url_for('cart_add') }}" class="pdp-form" data-add-form>
+      <input type="hidden" name="article_id" value="{{ p.article_id }}">
+      <input type="hidden" name="surface" value="{{ surface or 'product' }}"><input type="hidden" name="shelf" value="{{ shelf }}">
+      <input type="hidden" name="position" value="{{ position }}"><input type="hidden" name="next" value="{{ request.full_path }}">
+      {% if p.sizes %}
+      <fieldset class="sizes"><legend>Chọn size</legend>
+        {% for s in p.sizes %}<label><input type="radio" name="size" value="{{ s }}"{{ ' checked' if s == 'M' }}><span>{{ s }}</span></label>{% endfor %}
+      </fieldset>
+      {% endif %}
+      <label class="qty">Số lượng <input type="number" name="qty" value="1" min="1" max="10"></label>
+      <button class="btn wide" type="submit">{{ icon('bag') }}Thêm vào giỏ</button>
+    </form>
+    <ul class="perks small">
+      <li>{{ icon('truck') }} Miễn phí vận chuyển cho đơn từ 499.000đ</li>
+      <li>{{ icon('return') }} Đổi trả trong 30 ngày</li>
+      <li>{{ icon('shield') }} Thanh toán giả lập, không thu tiền thật</li>
+    </ul>
+    {% if p.desc %}<h3>Mô tả</h3><p class="muted">{{ p.desc }}</p>{% endif %}
+    <p class="small muted">Mã sản phẩm: {{ p.article_id }}</p>
+  </div>
+</div>
+{% endblock %}

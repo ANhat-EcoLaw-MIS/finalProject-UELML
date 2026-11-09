@@ -1,0 +1,82 @@
+{# ---- Ảnh minh hoạ khi chưa có ảnh thật: bóng dáng theo nhóm hàng trên nền màu thật của sản phẩm ---- #}
+{% macro garment(group) %}
+<svg class="gm" viewBox="0 0 100 120" aria-hidden="true" focusable="false">
+{% if group == 'Garment Lower body' %}<path d="M28 10h44l5 102H55L50 54l-5 58H23z"/>
+{% elif group == 'Garment Full body' %}<path d="M38 8h24l-2 26c10 12 18 46 24 78H16c6-32 14-66 24-78z"/>
+{% elif group == 'Shoes' %}<path d="M8 74c12 0 22-8 28-26l12 4c8 14 28 18 44 24v14H8z"/>
+{% elif group in ('Accessories', 'Bags') %}<path d="M24 46h52l6 56H18z"/><path class="stroke" d="M36 46V36c0-16 28-16 28 0v10"/>
+{% elif group == 'Swimwear' %}<path d="M18 36h64L68 74c-8 16-28 16-36 0z"/>
+{% elif group in ('Underwear', 'Underwear/nightwear') %}<path d="M16 44c0 18 10 30 18 30 8 0 12-8 16-8s8 8 16 8c8 0 18-12 18-30-14 4-22 0-34-12-12 12-20 16-34 12z"/>
+{% elif group == 'Socks & Tights' %}<path d="M34 10h26v52l22 28c4 8-2 18-12 18H44c-8 0-14-6-14-14z"/>
+{% elif group in ('Garment Upper body', 'Nightwear') %}<path d="M30 12 16 22 4 42l16 10 8-10v66h44V42l8 10 16-10-12-20-14-10c-6 10-34 10-40 0z"/>
+{% else %}<path class="stroke" d="M50 24c0-10 14-10 14 2 0 10-14 10-14 22L10 86h80L50 48"/>{% endif %}
+</svg>
+{% endmacro %}
+
+{% macro media(p, cls='') %}
+<div class="media {{ cls }}{{ ' light' if p.light_bg }}" style="{{ p.swatch | sw }}">
+  {% if p.image %}<img src="{{ url_for('static', filename=p.image) }}" alt="{{ p.name }}" loading="lazy">
+  {% else %}{{ garment(p.group) }}<span class="media-note">Ảnh minh hoạ</span>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro icon(name) %}
+<svg viewBox="0 0 24 24" class="ic" aria-hidden="true">
+{% if name == 'bag' %}<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>
+{% elif name == 'user' %}<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>
+{% elif name == 'search' %}<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+{% elif name == 'chev-l' %}<path d="m15 5-7 7 7 7"/>
+{% elif name == 'chev-r' %}<path d="m9 5 7 7-7 7"/>
+{% elif name == 'truck' %}<path d="M2 6h12v10H2zM14 10h4l4 3v3h-8"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>
+{% elif name == 'return' %}<path d="M4 8h11a5 5 0 0 1 0 10H8"/><path d="m8 4-4 4 4 4"/>
+{% elif name == 'shield' %}<path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z"/><path d="m9 12 2 2 4-4"/>
+{% elif name == 'check' %}<path d="m5 12.5 4.5 4.5L19 7"/>
+{% elif name == 'spark' %}<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/>
+{% elif name == 'chat' %}<path d="M4 5h16v11H9l-5 4z"/>
+{% elif name == 'phone' %}<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>
+{% elif name == 'mail' %}<path d="M3 6h18v12H3z"/><path d="m3 7 9 6 9-6"/>
+{% elif name == 'pin' %}<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>
+{% elif name == 'trash' %}<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>
+{% endif %}
+</svg>
+{% endmacro %}
+
+{# ---- Thẻ sản phẩm. Thẻ gợi ý (có shelf) mang data-rec để app.js ghi impression / click ---- #}
+{% macro card(it, surface, shelf='', pos=0) %}
+{% set link = url_for('product', article_id=it.article_id, surface=surface, shelf=shelf, position=pos) if shelf else url_for('product', article_id=it.article_id) %}
+<article class="pc" data-article="{{ it.article_id }}" data-surface="{{ surface }}" data-shelf="{{ shelf }}" data-pos="{{ pos }}"{% if shelf %} data-rec{% endif %}>
+  <a href="{{ link }}" class="pc-link" aria-label="{{ it.name }}">
+    {{ media(it) }}
+    {% if it.badges %}<span class="badge-pill">{{ it.badges[0] }}</span>{% endif %}
+  </a>
+  <div class="pc-info">
+    <a class="pc-name" href="{{ link }}">{{ it.name }}</a>
+    <p class="pc-meta"><i class="dot" style="background:{{ it.swatch }}"></i>{{ it.colour }} · {{ it.type_vi }}</p>
+    <p class="pc-price">{{ it.price_vnd | vnd }}</p>
+    {% if it.reason %}<p class="pc-reason" title="{{ it.reason }}">{{ icon('spark') }}<span>{{ it.reason }}</span></p>{% endif %}
+  </div>
+  <form class="pc-add" method="post" action="{{ url_for('cart_add') }}" data-add-form>
+    <input type="hidden" name="article_id" value="{{ it.article_id }}">
+    <input type="hidden" name="surface" value="{{ surface }}"><input type="hidden" name="shelf" value="{{ shelf }}">
+    <input type="hidden" name="position" value="{{ pos }}"><input type="hidden" name="next" value="{{ request.full_path }}">
+    {% if it.sizes %}<select name="size" aria-label="Chọn size">{% for s in it.sizes %}<option{{ ' selected' if s == 'M' }}>{{ s }}</option>{% endfor %}</select>{% endif %}
+    <button class="btn sm" type="submit">{{ icon('bag') }}Thêm</button>
+  </form>
+</article>
+{% endmacro %}
+
+{# ---- Một mục gợi ý, cuộn ngang ---- #}
+{% macro shelf(sh, surface) %}
+<section class="shelf shelf-{{ sh.key }}" aria-labelledby="sh-{{ sh.key }}-{{ surface }}">
+  <div class="shelf-head">
+    <div>
+      <h2 id="sh-{{ sh.key }}-{{ surface }}">{{ sh.title }}</h2>
+      {% if sh.subtitle %}<p class="muted">{{ sh.subtitle }}</p>{% endif %}
+    </div>
+    <div class="rail-nav"><button type="button" class="round" data-rail="-1" aria-label="Trước">{{ icon('chev-l') }}</button><button type="button" class="round" data-rail="1" aria-label="Sau">{{ icon('chev-r') }}</button></div>
+  </div>
+  <div class="rail">{% for it in sh.cards %}{{ card(it, surface, sh.key, it.position) }}{% endfor %}</div>
+</section>
+{% endmacro %}
+
+{% macro scenario_badge(s) %}<span class="scen scen-{{ s.key }}">{{ s.label }}{% if s.n %} · {{ s.n }} lượt mua{% endif %}</span>{% endmacro %}

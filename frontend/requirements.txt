@@ -1,0 +1,6 @@
+flask>=3.0
+pandas>=2.0
+numpy
+scipy          # model backend (ItemCF)
+pyarrow        # đọc parquet của repo
+pytest         # chạy tests/

@@ -1,0 +1,106 @@
+{% from "_macros.html" import icon, scenario_badge %}<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}StyleRec{% endblock %} · StyleRec</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body data-user="{{ user.id if user else '' }}" data-scenario="{{ scenario.key }}">
+<div class="announce">Miễn phí vận chuyển cho đơn từ 499.000đ · Đổi trả 30 ngày</div>
+<header class="top">
+  <div class="wrap top-in">
+    <a class="logo" href="{{ url_for('index') }}">Style<b>Rec</b></a>
+    <nav class="nav" aria-label="Danh mục">
+      <a href="{{ url_for('products') }}">Tất cả</a>
+      {% for g, name, n in groups[:5] %}<a href="{{ url_for('products', group=g) }}">{{ name }}</a>{% endfor %}
+    </nav>
+    <form class="search" action="{{ url_for('products') }}" role="search">
+      <input name="q" placeholder="Tìm áo, quần, đầm…" value="{{ request.args.get('q', '') }}" aria-label="Tìm sản phẩm">
+      <button aria-label="Tìm">{{ icon('search') }}</button>
+    </form>
+    <div class="top-actions">
+      {% if user %}
+      <a class="top-btn" href="{{ url_for('profile') }}" title="Hồ sơ">{{ icon('user') }}<span>{{ user.name }}</span></a>
+      <form method="post" action="{{ url_for('signout') }}"><button class="top-link">Đăng xuất</button></form>
+      {% else %}
+      <a class="top-btn" href="{{ url_for('signin') }}">{{ icon('user') }}<span>Đăng nhập</span></a>
+      {% endif %}
+      <a class="top-btn cart-btn" href="{{ url_for('cart_page') }}" aria-label="Giỏ hàng">{{ icon('bag') }}<span class="count" data-cart-count>{{ cart_count }}</span></a>
+    </div>
+  </div>
+  <div class="demobar">
+    <div class="wrap demobar-in">
+      <span class="demobar-title">Demo · đổi nhanh tình huống:</span>
+      <form method="post" action="{{ url_for('demo_login', who='cold', next=request.path) }}"><button class="chip{{ ' on' if user and user.kind == 'temp' }}">Khách mới</button></form>
+      {% for d in demo_users %}
+      <form method="post" action="{{ url_for('demo_login', who=d.id, next=request.path) }}"><button class="chip{{ ' on' if user and user.id == d.id }}" title="{{ d.note }}">{{ d.name }}</button></form>
+      {% endfor %}
+      <span class="demobar-now">Đang xem: {{ scenario_badge(scenario) }}</span>
+      <form method="post" action="{{ url_for('demo_reset') }}" class="demobar-reset"><button class="top-link" title="Xoá các đơn đã đặt của khách mẫu">Đặt lại demo</button></form>
+    </div>
+  </div>
+</header>
+
+<main class="wrap main">
+  {% with msgs = get_flashed_messages(with_categories=true) %}{% if msgs %}
+  <div class="flashes">{% for cat, m in msgs %}<p class="flash flash-{{ cat }}">{{ m }}</p>{% endfor %}</div>
+  {% endif %}{% endwith %}
+  {% block content %}{% endblock %}
+  {% if rec_error %}<p class="flash flash-info">Hệ thống gợi ý đang bận, một số mục có thể chưa hiển thị.</p>{% endif %}
+</main>
+
+<footer class="foot">
+  <div class="foot-perks">
+    <div class="wrap foot-perks-in">
+      <div>{{ icon('truck') }}<p><b>Miễn phí vận chuyển</b><span>Cho đơn từ 499.000đ</span></p></div>
+      <div>{{ icon('return') }}<p><b>Đổi trả 30 ngày</b><span>Miễn phí, không cần lý do</span></p></div>
+      <div>{{ icon('shield') }}<p><b>Thanh toán an toàn</b><span>COD, thẻ, ví điện tử</span></p></div>
+      <div>{{ icon('chat') }}<p><b>Hỗ trợ 8:00–22:00</b><span>Tất cả các ngày trong tuần</span></p></div>
+    </div>
+  </div>
+  <div class="wrap foot-in">
+    <div class="foot-brand">
+      <a class="logo" href="{{ url_for('index') }}">Style<b>Rec</b></a>
+      <p>Cửa hàng thời trang demo với gợi ý cá nhân hoá: món bạn hay mua lại, món mới hợp với bạn và hàng đang bán chạy.</p>
+      <p class="foot-contact">{{ icon('phone') }} Hotline: 1900 0000 <small>(demo)</small></p>
+      <p class="foot-contact">{{ icon('mail') }} hotro@stylerec.demo</p>
+      <p class="foot-contact">{{ icon('pin') }} Đồ án môn học · TP. Hồ Chí Minh</p>
+    </div>
+    <nav aria-label="Mua sắm"><h3>Mua sắm</h3>
+      <a href="{{ url_for('products') }}">Tất cả sản phẩm</a>
+      {% for g, name, n in groups[:5] %}<a href="{{ url_for('products', group=g) }}">{{ name }}</a>{% endfor %}
+    </nav>
+    <nav aria-label="Hỗ trợ khách hàng"><h3>Hỗ trợ khách hàng</h3>
+      {% for slug in ('van-chuyen', 'doi-tra', 'chon-size', 'thanh-toan', 'cau-hoi') %}<a href="{{ url_for('info', slug=slug) }}">{{ info_pages[slug].title }}</a>{% endfor %}
+    </nav>
+    <nav aria-label="Về StyleRec"><h3>Về StyleRec</h3>
+      <a href="{{ url_for('info', slug='gioi-thieu') }}">{{ info_pages['gioi-thieu'].title }}</a>
+      <a href="{{ url_for('info', slug='cach-goi-y') }}">{{ info_pages['cach-goi-y'].title }}</a>
+      <a href="{{ url_for('profile') }}">Tài khoản &amp; lịch sử mua</a>
+      <a href="{{ url_for('cart_page') }}">Giỏ hàng</a>
+    </nav>
+    <div class="foot-news">
+      <h3>Nhận tin ưu đãi</h3>
+      <p>Bộ sưu tập mới và ưu đãi riêng mỗi tuần.</p>
+      <form method="post" action="{{ url_for('newsletter') }}" class="news-form">
+        <input type="email" name="email" placeholder="Email của bạn" aria-label="Email nhận tin" required>
+        <button class="btn sm">Đăng ký</button>
+      </form>
+      <p class="small">Bản demo: email không được lưu.</p>
+      <div class="social" aria-label="Mạng xã hội">
+        <span title="Facebook">f</span><span title="Instagram">ig</span><span title="TikTok">tt</span><span title="YouTube">yt</span>
+      </div>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <div class="wrap foot-bottom-in">
+      <p>© 2026 StyleRec · Web demo hệ khuyến nghị (đồ án môn học). Dữ liệu: H&amp;M Personalized Fashion Recommendations (Kaggle), kênh online.</p>
+      <div class="pay"><span>COD</span><span>Thẻ</span><span>Ví điện tử</span></div>
+    </div>
+  </div>
+</footer>
+<div class="toast" role="status" aria-live="polite" hidden></div>
+<script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</body>
+</html>
