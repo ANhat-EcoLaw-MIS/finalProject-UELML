@@ -47,28 +47,3 @@ class RecencyFrequencyModel(BaseRecommender):
 
     def score_items(self, customer_id):
         return self._score_items(customer_id)
-
-    def to_parquet(self, path):
-        self._require(hasattr(self, "scores_"), "fit must be called before to_parquet")
-        path = Path(path)
-        self.scores_.to_parquet(path, index=False)
-        settings = {
-            "half_life_days": self.half_life_days,
-            "history_cap_days": self.history_cap_days,
-            "k": self.k,
-            "anchor_date": self.anchor_date_.isoformat(),
-        }
-        path.with_suffix(".json").write_text(json.dumps(settings), encoding="utf-8")
-
-    @classmethod
-    def from_parquet(cls, path):
-        path = Path(path)
-        settings = json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
-        model = cls(
-            half_life_days=settings["half_life_days"],
-            history_cap_days=settings["history_cap_days"],
-            k=settings["k"],
-        )
-        model.scores_ = pd.read_parquet(path)
-        model.anchor_date_ = pd.Timestamp(settings["anchor_date"])
-        return model

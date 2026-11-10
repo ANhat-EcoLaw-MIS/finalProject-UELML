@@ -57,32 +57,3 @@ class PopularityModel(BaseRecommender):
         """Popularity is not personalised, so the ranking is the same for everyone."""
         self._require(hasattr(self, "ranking_"), "fit must be called before score_items")
         return self.ranking_.copy()
-
-    def to_parquet(self, path):
-        self._require(hasattr(self, "ranking_"), "fit must be called before to_parquet")
-        path = Path(path)
-        self.ranking_.to_parquet(path, index=False)
-        if self.exclude_seen:
-            self.seen_.to_parquet(path.with_name(path.stem + "_seen.parquet"), index=False)
-        settings = {
-            "window_days": self.window_days,
-            "exclude_seen": self.exclude_seen,
-            "k": self.k,
-            "anchor_date": self.anchor_date_.isoformat(),
-        }
-        path.with_suffix(".json").write_text(json.dumps(settings), encoding="utf-8")
-
-    @classmethod
-    def from_parquet(cls, path):
-        path = Path(path)
-        settings = json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
-        model = cls(
-            window_days=settings["window_days"],
-            exclude_seen=settings.get("exclude_seen", False),
-            k=settings["k"],
-        )
-        model.ranking_ = pd.read_parquet(path)
-        if model.exclude_seen:
-            model.seen_ = pd.read_parquet(path.with_name(path.stem + "_seen.parquet"))
-        model.anchor_date_ = pd.Timestamp(settings["anchor_date"])
-        return model
