@@ -15,6 +15,7 @@ KHÔNG sửa code backend. File này:
 """
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 import sys
@@ -57,8 +58,19 @@ def load_orchestrator(history: pd.DataFrame, articles: pd.DataFrame, path: Path 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         orc = build_default(art["product_type_no"], article_product=art["product_code"]).fit(history, anchor)
+    if path.exists():   # có người đặt file vào trong lúc đang fit -> KHÔNG ghi đè, dùng file đó
+        log.warning("%s vừa xuất hiện trong lúc fit -> dùng file đó, không ghi đè.", path)
+        return Orchestrator.load(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    orc.save(path)
+    tmp = path.with_name(path.name + ".building")
+    orc.save(tmp)
+    try:
+        tmp.rename(path)          # rename không ghi đè file đã có (Windows báo lỗi nếu path đã tồn tại)
+    except FileExistsError:
+        tmp.unlink(missing_ok=True)
+        log.warning("%s đã có sẵn -> giữ file đó, bỏ bản vừa fit.", path)
+        return Orchestrator.load(path)
+    log.info("Đã lưu Orchestrator tự fit vào %s", path)
     return orc
 
 
@@ -73,6 +85,11 @@ class ProductionRecommender:
         self.history = history
         self.orch_path = Path(orch_path)
         self.orc = orchestrator or load_orchestrator(history, articles, self.orch_path)
+        self.orch_sha256 = ""
+        if orchestrator is None and self.orch_path.exists():   # để /healthz cho biết đang dùng đúng file nào
+            with self.orch_path.open("rb") as f:
+                self.orch_sha256 = hashlib.file_digest(f, "sha256").hexdigest()
+            log.info("orchestrator.pkl sha256=%s (%s bytes)", self.orch_sha256[:16], self.orch_path.stat().st_size)
         art = articles.drop_duplicates("article_id").set_index("article_id")
         self.types, self.codes = art["product_type_no"], art["product_code"]
 
@@ -312,5 +329,7 @@ class ProductionRecommender:
     # ------------------------------------------------------------------ thông tin
     def info(self) -> dict:
         return dict(name="ProductionRecommender (Orchestrator)", orchestrator=str(self.orch_path),
+                    orchestrator_sha256=self.orch_sha256,
+                    orchestrator_bytes=self.orch_path.stat().st_size if self.orch_path.exists() else None,
                     shelves=[s.name for s in self.orc.sections], anchor=str(self.anchor.date()),
                     ready_seconds=self.ready_seconds, n_customers=len(self.known), settings=SETTINGS)

@@ -38,7 +38,7 @@ frontend/
   mock_recommender.py         recommender giả cho dev/test (chỉ dùng với bộ dữ liệu mẫu)
   dataset.py                  đọc dữ liệu: load_full() (parquet của repo) / load_sample() (frontend/data)
   catalog.py                  danh mục sản phẩm, lịch sử mua, khách mẫu (web chỉ tra cứu, không gợi ý)
-  store.py                    runtime/: users.json, orders.json, events.csv
+  store.py                    CSDL của web (SQLite runtime/stylerec.db): users, orders, order_items, web_transactions, events
   app.py                      create_app(recommender, catalog): chỉ có web, recommender được tiêm vào
   run_production.py           ghép dữ liệu thật + ProductionRecommender
 ```
@@ -68,12 +68,33 @@ Orchestrator chưa có hai phần sau, nên chúng được viết trong `produc
 Tuỳ chọn trong `SETTINGS` của `production_recommender.py`: `trending_for_returning` (thêm kệ bán chạy cho khách quen),
 `discovery_min_because`, `cart_exclude_cart_types`.
 
+## Lưu trữ dữ liệu
+
+| Dữ liệu | Ở đâu | Ai ghi |
+| --- | --- | --- |
+| Lịch sử mua H&M (dữ liệu huấn luyện) | `../data/split/*.parquet`, `../data/transactions.parquet` | chỉ đọc |
+| Tài khoản, đơn hàng, chi tiết đơn | `runtime/stylerec.db`, bảng `users`, `orders`, `order_items` | web |
+| Lượt mua trên web, cùng định dạng dữ liệu huấn luyện | bảng `web_transactions` (`customer_id, article_id, t_dat, price, sales_channel_id=2`) | web, khi thanh toán |
+| Sự kiện (impression, click, add_to_cart, purchase) | bảng `events` | web |
+| Giỏ hàng đang mua | phiên trình duyệt (cookie của Flask) | web |
+
+**Logic gợi ý thay đổi:** mỗi request, web đọc lượt mua trên web của khách từ `web_transactions` và truyền cho recommender
+(`session_purchases`). Recommender coi đó là lần mua mới nhất và chấm lại bằng các model của Orchestrator, nên gợi ý đổi ngay
+mà không phải huấn luyện lại.
+
+**Cập nhật định kỳ vào dữ liệu huấn luyện:** chạy `python tools/export_web_transactions.py`. Tool xuất các lượt mua chưa xuất
+ra `../data/web_transactions.parquet`, cùng cột với dữ liệu gốc. Ngày mua theo đồng hồ mô phỏng: nối tiếp sau 22/09/2020,
+cộng số ngày kể từ khi web chạy lần đầu. Phía backend gộp file này vào dữ liệu gốc rồi fit lại Orchestrator (`build_pickle.py`).
+Tài khoản mới được cấp `customer_id` từ 1.000.000 trở lên, nên không trùng mã khách trong dữ liệu.
+
+SQLite đủ cho một server demo. Muốn mở rộng thì chỉ cần thay lớp `Store` bằng Postgres hoặc MySQL, schema giữ nguyên.
+
 ## API
 
 - `GET /api/recommendations?surface=home|cart&user_id=&items=a,b&k=`
   trả về `{user_id, scenario, surface, shelves:[{key, title, items:[{article_id, name, price_vnd, image_url, url, reason, because, because_name, position}]}]}`.
 - `POST /api/events`: nhận một object hoặc `{events:[...]}`, với `event` ∈ `impression | click | add_to_cart`.
-  Ghi vào `runtime/events.csv` với các cột `ts, session_id, user_id, scenario, event, surface, shelf, article_id, position, order_id, value`.
+  Ghi vào bảng `events` của `runtime/stylerec.db` với các cột `ts, session_id, user_id, scenario, event, surface, shelf, article_id, position, order_id, value`.
   Server tự ghi `add_to_cart` (khi `/cart/add`) và `purchase` (khi thanh toán), kèm surface/shelf/position của thẻ gợi ý gốc.
 - `GET /healthz`: thông tin recommender đang chạy.
 

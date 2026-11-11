@@ -21,6 +21,8 @@ from flask import (Flask, abort, flash, g, jsonify, redirect, render_template, r
 from markupsafe import Markup
 from werkzeug.security import check_password_hash, generate_password_hash
 
+import pandas as pd
+
 from catalog import Catalog
 from recommender_port import (SHELF_CART, SHELF_DISCOVERY, SHELF_FOR_YOU, SHELF_POPULAR, SHELF_REPEAT,
                               ensure_recommender, normalize)
@@ -64,9 +66,19 @@ INFO_PAGES = {
                   ("Có thể bạn sẽ thích", ["Món mới bạn chưa mua, kết hợp hai nguồn:",
                                            "Khách mua món bạn đã mua cũng mua món này (\"Vì bạn đã mua …\").",
                                            "Hàng bán chạy trong những loại sản phẩm bạn hay mua."]),
-                  ("Thường được mua kèm (giỏ hàng)", ["Món khác loại hay được mua cùng các món đang trong giỏ."]),
-                  ("Sau khi thanh toán", ["Món vừa mua được tính như lần mua mới nhất, nên gợi ý thay đổi ngay; "
-                                          "khách mới chuyển sang khách quen."])]),
+                  ("Thường được mua kèm (giỏ hàng)", [
+                      "Dùng mô hình Item-to-Item CF (ItemCF) nằm trong Orchestrator: độ tương đồng cosine giữa các sản "
+                      "phẩm, tính từ việc cùng được những khách hàng giống nhau mua.",
+                      "Cộng độ tương đồng của mọi món trong giỏ, bỏ món đã có, bỏ món cùng loại hoặc cùng mẫu (khác màu) "
+                      "với món trong giỏ; thiếu thì bù bằng hàng bán chạy thuộc loại khác.",
+                      "Orchestrator chỉ có hàm gợi ý theo khách (page), nên phần theo giỏ hàng được dựng trên chính mô hình "
+                      "ItemCF đã huấn luyện của Orchestrator."]),
+                  ("Sau khi thanh toán", [
+                      "Đơn hàng được lưu vào cơ sở dữ liệu của web (bảng orders, order_items, web_transactions).",
+                      "Mỗi lần mở trang, các lượt mua trên web được đọc lại và coi như lần mua mới nhất, nên gợi ý thay đổi "
+                      "ngay; khách mới chuyển sang khách quen.",
+                      "Định kỳ, các lượt mua trên web được xuất theo đúng định dạng dữ liệu huấn luyện để gộp vào và huấn "
+                      "luyện lại mô hình (tools/export_web_transactions.py)."])]),
     "van-chuyen": dict(title="Chính sách vận chuyển", intro="Áp dụng cho bản demo, không giao hàng thật.",
                        sections=[("Phí vận chuyển", ["Tiêu chuẩn (3–5 ngày): 30.000đ, miễn phí cho đơn từ 499.000đ.",
                                                      "Hoả tốc (trong 24h): 50.000đ."]),
@@ -102,7 +114,9 @@ def create_app(recommender=None, catalog: Catalog | None = None, runtime_dir: Pa
         from mock_recommender import MockRecommender
         recommender = MockRecommender(catalog)
     recommender = ensure_recommender(recommender)
-    store = Store(runtime_dir or os.environ.get("STYLEREC_RUNTIME", HERE / "runtime"))
+    store = Store(runtime_dir or os.environ.get("STYLEREC_RUNTIME", HERE / "runtime"),
+                  sim_anchor=catalog.last_date + pd.Timedelta(days=1))
+    store.fill_missing_prices(catalog.raw_price)   # đơn cũ (trước khi có cột price) -> giá theo thang dataset
 
     app = Flask(__name__)
     app.secret_key = secret_key or os.environ.get("STYLEREC_SECRET", "stylerec-dev-secret")
@@ -379,7 +393,8 @@ def create_app(recommender=None, catalog: Catalog | None = None, runtime_dir: Pa
                 fee = 0 if ship_free and form["shipping"] == "standard" else SHIPPING[form["shipping"]][1]
                 oid = "SR" + time.strftime("%y%m%d") + uuid.uuid4().hex[:6].upper()
                 items = [dict(article_id=l["article_id"], name=l["product"].name, size=l["size"], qty=l["qty"],
-                              price_vnd=l["product"].price_vnd, surface=l.get("surface", ""),
+                              price_vnd=l["product"].price_vnd, price=catalog.raw_price(l["article_id"]),
+                              surface=l.get("surface", ""),
                               shelf=l.get("shelf", ""), position=l.get("position", "")) for l in lines]
                 n_items = sum(i["qty"] for i in items)
                 after = scenario_of(u, extra=n_items)
@@ -388,7 +403,7 @@ def create_app(recommender=None, catalog: Catalog | None = None, runtime_dir: Pa
                              shipping=form["shipping"], payment=form["payment"], name=form["name"],
                              phone=form["phone"], address=form["address"],
                              scenario_before=before["key"], scenario_after=after["key"])
-                store.save_order(order)
+                store.save_order(order, customer_id=u.get("customer_id"))
                 store.log_events([dict(event="purchase", session_id=session_id(), user_id=u["id"],
                                        scenario=after["key"], surface=i["surface"] or "direct", shelf=i["shelf"],
                                        article_id=i["article_id"], position=i["position"], order_id=oid,
@@ -411,16 +426,23 @@ def create_app(recommender=None, catalog: Catalog | None = None, runtime_dir: Pa
     @app.get("/profile")
     @login_required
     def profile():
+        """Một dòng thời gian lịch sử mua, gộp 2 nguồn:
+        - đơn trên web (CSDL của web, tính ngay vào gợi ý), mới nhất trước;
+        - lịch sử trong dữ liệu H&M (dữ liệu huấn luyện, chỉ đọc), theo ngày."""
         u = current_user()
-        hist = catalog.history(u.get("customer_id"), limit=80)
+        timeline = []
+        for o in sorted(store.orders(u["id"]), key=lambda o: -o["ts"]):
+            items = [dict(i, product=catalog.get(i["article_id"])) for i in o["items"]]
+            timeline.append(dict(source="web", date=o["date"], order=o, items=[i for i in items if i["product"]]))
         by_day: dict[str, list] = {}
-        for h in hist:
+        for h in catalog.history(u.get("customer_id"), limit=80):
             p = catalog.get(h["article_id"])
             if p:
-                by_day.setdefault(h["date"], []).append(dict(h, product=p))
-        orders = sorted(store.orders(u["id"]), key=lambda o: -o["ts"])
-        return render_template("profile.html", orders=orders, history=by_day,
-                               n_history=catalog.n_purchases(u.get("customer_id")), shipping=SHIPPING)
+                by_day.setdefault(h["date"], []).append(dict(h, product=p, qty=1))
+        for day, items in by_day.items():
+            timeline.append(dict(source="data", date=pd.Timestamp(day).strftime("%d/%m/%Y"), items=items))
+        return render_template("profile.html", timeline=timeline, n_history=catalog.n_purchases(u.get("customer_id")),
+                               n_orders=len(store.orders(u["id"])), shipping=SHIPPING, payment=PAYMENT)
 
     # ---------------------------------------------------------------- tài khoản
     def login(uid, kind):
@@ -458,7 +480,8 @@ def create_app(recommender=None, catalog: Catalog | None = None, runtime_dir: Pa
             if not errors:
                 uid = "u-" + uuid.uuid4().hex[:10]
                 store.save_user(dict(id=uid, name=form["name"], email=form["email"],
-                                     password=generate_password_hash(pw), customer_id=None, created=time.time()))
+                                     password=generate_password_hash(pw), customer_id=store.next_customer_id(),
+                                     created=time.time()))
                 login(uid, "account")
                 flash("Tạo tài khoản thành công. Bạn là khách mới: gợi ý đang dựa trên hàng bán chạy.", "ok")
                 return redirect(url_for("index"))
@@ -474,8 +497,8 @@ def create_app(recommender=None, catalog: Catalog | None = None, runtime_dir: Pa
     def demo_login(who):
         if who == "cold":
             uid = "t-" + uuid.uuid4().hex[:10]
-            store.save_user(dict(id=uid, name="Khách mới (demo)", email="", password="", customer_id=None,
-                                 created=time.time(), temp=True))
+            store.save_user(dict(id=uid, name="Khách mới (demo)", email="", password="",
+                                 customer_id=store.next_customer_id(), created=time.time(), temp=True))
             login(uid, "temp")
         elif catalog.demo_user(who):
             login(who, "demo")
@@ -547,6 +570,7 @@ def create_app(recommender=None, catalog: Catalog | None = None, runtime_dir: Pa
     def healthz():
         info = getattr(recommender, "info", None)
         return jsonify(ok=True, recommender=info() if callable(info) else type(recommender).__name__,
+                       storage=store.stats(),
                        n_products_browse=len(catalog.order), event_types=sorted(EVENT_TYPES))
 
     @app.errorhandler(404)

@@ -6,7 +6,7 @@
   <title>{% block title %}StyleRec{% endblock %} · StyleRec</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body data-user="{{ user.id if user else '' }}" data-scenario="{{ scenario.key }}">
+<body data-user="{{ user.id if user else '' }}" data-scenario="{{ scenario.key }}" data-page="{{ request.endpoint }}">
 <div class="announce">Miễn phí vận chuyển cho đơn từ 499.000đ · Đổi trả 30 ngày</div>
 <header class="top">
   <div class="wrap top-in">

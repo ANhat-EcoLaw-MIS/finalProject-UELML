@@ -29,6 +29,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .nav a{opacity:.85} .nav a:hover{opacity:1;color:var(--accent)}
 .search{flex:1;max-width:360px;margin-left:auto;display:flex;background:rgb(255 255 255 / .1);border-radius:var(--pill)}
 .search input{flex:1;background:none;border:0;padding:9px 16px;color:#fff;min-width:0} .search input::placeholder{color:#bbb}
+.search input[name=q]{background:none!important;border:0!important;color:#fff!important;padding:9px 16px!important;border-radius:var(--pill)} /* thắng rule input chung (nền trắng) */
 .search input:focus{outline:none} .search button{background:none;border:0;color:#fff;padding:0 14px;cursor:pointer}
 .top-actions{display:flex;align-items:center;gap:10px}
 .top-btn{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;padding:6px 10px;border-radius:var(--pill)}
@@ -196,3 +197,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--violet);outline-
   .line{grid-template-columns:64px 1fr auto;} .line-media .media{width:64px} .line-total{grid-column:2}
 }
 @media(max-width:560px){.search{display:none} .top-btn span{display:none} .rail{grid-auto-columns:70%}}
+.src{display:inline-block;border-radius:var(--pill);padding:1px 9px;font-size:11px;font-weight:700;margin-right:4px}
+.src-web{background:#ffe6df;color:#a8321a} .src-data{background:#e9e4f7;color:#4b2f8c}
+.howto{padding:14px 20px;margin-top:14px} .howto summary{cursor:pointer} .howto ul{margin:10px 0 0;padding-left:18px;display:grid;gap:6px}
+.hist-head{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px}

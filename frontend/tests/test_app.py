@@ -111,7 +111,9 @@ def test_signup_is_cold_then_checkout_makes_warm():
     data, keys = shelf_keys(c)
     assert data["scenario"] == "light" and SHELF_REPEAT in keys
     assert rec.calls[-1][2] == (IDS[5], IDS[5])          # session_purchases truyền đúng cho recommender
-    assert "Đơn hàng trên web" in c.get("/profile").get_data(as_text=True)
+    prof = c.get("/profile").get_data(as_text=True)
+    order_id = r.headers["Location"].rsplit("/", 1)[-1]
+    assert "Lịch sử mua hàng" in prof and "Đơn trên web" in prof and order_id in prof
 
 
 def test_checkout_requires_login_and_validates():
@@ -181,6 +183,42 @@ def test_pages_render_and_404():
     assert c.get("/product/0000000000").status_code == 404
     assert c.get("/auth/signin").status_code == 200 and c.get("/auth/signup").status_code == 200
     assert c.get("/healthz").get_json()["ok"]
+
+
+def test_search_multiword_and_accents():
+    p = CATALOG.get(IDS[0])
+    word = p.name.split()[0]
+    assert CATALOG.search(q=word)[1] >= 1
+    assert CATALOG.search(q=f"{word} {p.colour}")[1] >= 1                 # nhiều từ: khớp tất cả
+    assert CATALOG.search(q="khongtontai xyz")[1] == 0
+    from catalog import fold
+    assert fold("Áo Đầm") == "ao dam"
+    if p.type_vi:                                                       # tên loại tiếng Việt, gõ không dấu vẫn ra
+        assert IDS[0] in [x.article_id for x in CATALOG.search(q=fold(p.type_vi), per_page=100)[0]]
+
+
+def test_store_sqlite_and_export():
+    from store import Store
+    st = Store(tempfile.mkdtemp(), sim_anchor="2020-09-23")
+    cid = st.next_customer_id()
+    assert cid >= Store.WEB_CUSTOMER_ID_START
+    st.save_user(dict(id="u-1", name="A", email="A@x.test", password="h", customer_id=cid))
+    assert st.find_by_email("a@X.test")["customer_id"] == cid and st.next_customer_id() == cid + 1
+    st.save_order(dict(id="SR1", uid="u-1", ts=1.0, date="d", total=1, payment="cod", shipping="standard",
+                       items=[dict(article_id=IDS[0], name="x", qty=2, price_vnd=1, price=0.02)]), customer_id=cid)
+    assert st.session_purchases("u-1") == [IDS[0], IDS[0]]
+    out = st.export_web_transactions()
+    assert list(out.columns) == ["customer_id", "t_dat", "article_id", "price", "sales_channel_id"]
+    assert len(out) == 2 and str(out["t_dat"].iloc[0].date()) == "2020-09-23" and out["sales_channel_id"].eq(2).all()
+    assert st.export_web_transactions().empty                           # đã đánh dấu, không xuất lại
+    assert st.delete_orders({"u-1"}) == 0                               # đơn đã xuất được giữ lại
+    assert st.stats()["web_transactions"] == 2
+
+
+def test_cart_page_marks_body_for_reload():
+    _, c, _ = make()
+    c.post("/cart/add", data=dict(article_id=IDS[0]))
+    assert 'data-page="cart_page"' in c.get("/cart").get_data(as_text=True)
 
 
 def test_info_pages_and_newsletter():

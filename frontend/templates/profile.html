@@ -6,29 +6,34 @@
   <div>
     <h1>{{ user.name }}</h1>
     <p class="muted small">{% if user.kind == 'demo' %}Khách mẫu · mã khách {{ user.customer_id }}{% if user.note %} · {{ user.note }}{% endif %}
-      {% elif user.kind == 'temp' %}Tài khoản tạm cho demo khách mới{% else %}{{ user.email }}{% endif %}</p>
+      {% elif user.kind == 'temp' %}Tài khoản tạm cho demo khách mới · mã khách {{ user.customer_id }}{% else %}{{ user.email }} · mã khách {{ user.customer_id }}{% endif %}</p>
   </div>
   <div class="profile-stats">
     {{ scenario_badge(scenario) }}
-    <p class="small muted">{{ n_history }} lượt mua trong dữ liệu · {{ scenario.n_web }} món mua trên web</p>
+    <p class="small muted">Tổng {{ scenario.n }} lượt mua = {{ n_history }} trong dữ liệu H&amp;M + {{ scenario.n_web }} trên web ({{ n_orders }} đơn)</p>
   </div>
 </section>
 
-<h2 class="section-title">Đơn hàng trên web</h2>
-{% for o in orders %}
-<details class="panel order"{{ ' open' if loop.first }}>
-  <summary><b>{{ o.id }}</b> <span class="muted small">{{ o.date }}</span> <span class="right">{{ o.total | vnd }}</span></summary>
-  {% for i in o['items'] %}<p class="row small"><a href="{{ url_for('product', article_id=i.article_id) }}">{{ i.qty }} × {{ i.name }}{% if i.size %} ({{ i.size }}){% endif %}</a><span>{{ (i.price_vnd * i.qty) | vnd }}</span></p>{% endfor %}
+<details class="panel howto">
+  <summary><b>Lịch sử mua được lưu ở đâu?</b> <span class="muted small">Vì sao có hai nguồn</span></summary>
+  <ul class="small">
+    <li><span class="src src-data">Dữ liệu H&amp;M</span> là lịch sử mua online đến 22/09/2020, nằm trong dữ liệu huấn luyện của mô hình (file parquet, chỉ đọc). Tài khoản mới đăng ký trên web chưa có phần này.</li>
+    <li><span class="src src-web">Đơn trên web</span> được lưu trong cơ sở dữ liệu của web (SQLite: bảng <code>orders</code>, <code>order_items</code>, <code>web_transactions</code>). Mỗi lần mở trang, hệ thống đọc lại các lượt mua này và tính lại gợi ý ngay.</li>
+    <li>Định kỳ, các lượt mua trên web được xuất theo đúng định dạng dữ liệu huấn luyện và gộp vào để huấn luyện lại mô hình. Ngày mua được nối tiếp sau 22/09/2020.</li>
+  </ul>
 </details>
-{% else %}<p class="empty small">Chưa có đơn nào trên web.</p>{% endfor %}
 
-<h2 class="section-title">Lịch sử mua trong dữ liệu {% if n_history > 80 %}<small class="muted">(80 lượt gần nhất / {{ n_history }})</small>{% endif %}</h2>
-{% for day, items in history.items() %}
+<h2 class="section-title">Lịch sử mua hàng</h2>
+{% for g in timeline %}
 <div class="hist-day">
-  <p class="small muted">{{ day }}</p>
+  <p class="hist-head small">
+    {% if g.source == 'web' %}<span class="src src-web">Đơn trên web</span> <b>{{ g.order.id }}</b> · {{ g.date }} · {{ g.order.total | vnd }} · {{ payment[g.order.payment] }}
+    {% else %}<span class="src src-data">Dữ liệu H&amp;M</span> {{ g.date }}{% endif %}
+  </p>
   <div class="hist-items">
-    {% for h in items %}<a class="hist-item" href="{{ url_for('product', article_id=h.article_id) }}" title="{{ h.product.name }}">{{ media(h.product) }}<span class="small">{{ h.product.name }}</span></a>{% endfor %}
+    {% for h in g['items'] %}<a class="hist-item" href="{{ url_for('product', article_id=h.article_id) }}" title="{{ h.product.name }}">{{ media(h.product) }}<span class="small">{% if h.qty and h.qty > 1 %}{{ h.qty }} × {% endif %}{{ h.product.name }}{% if h.size %} ({{ h.size }}){% endif %}</span></a>{% endfor %}
   </div>
 </div>
-{% else %}<p class="empty small">Không có lịch sử mua trong dữ liệu (khách mới).</p>{% endfor %}
+{% else %}<p class="empty small">Chưa có lượt mua nào. Bạn đang là khách mới: gợi ý dựa trên hàng bán chạy.</p>{% endfor %}
+{% if n_history > 80 %}<p class="small muted">Đang hiển thị 80 lượt mua gần nhất trong dữ liệu H&amp;M (tổng {{ n_history }}).</p>{% endif %}
 {% endblock %}

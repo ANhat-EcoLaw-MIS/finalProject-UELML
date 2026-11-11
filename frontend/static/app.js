@@ -81,6 +81,8 @@
       if (!res.ok || !data.ok) throw new Error(data.error || "Lỗi");
       document.querySelectorAll("[data-cart-count]").forEach((el) => { el.textContent = data.cart_count; });
       showToast(`Đã thêm ${data.name}${data.size ? " · size " + data.size : ""} vào giỏ`);
+      // Đang ở trang giỏ hàng (vd. bấm "Thêm" ở mục mua kèm): tải lại để danh sách, tổng tiền và gợi ý mua kèm cập nhật
+      if (document.body.dataset.page === "cart_page") setTimeout(() => location.reload(), 600);
     } catch (e) {
       form.submit();   // fallback: submit thường
     } finally {
