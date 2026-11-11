@@ -226,5 +226,14 @@ def test_mock_recommender_contract():
     assert m.recommend_for_cart([]) == []
 
 
+def test_discovery_balance_keeps_because_items():
+    from production_recommender import ProductionRecommender
+    recs = [Rec(f"{i:010d}", "", SHELF_DISCOVERY, because="x" if i in (3, 13, 14) else "") for i in range(20)]
+    top = ProductionRecommender._balance(recs, k=12, min_because=4)
+    assert len(top) == 12 and sum(1 for r in top if r.because) == 3         # chỉ có 3 món CF -> lấy cả 3
+    assert [r.article_id for r in top] == sorted(r.article_id for r in top)  # giữ thứ tự của model
+    assert ProductionRecommender._balance(recs[:5], k=12, min_because=4) == recs[:5]
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-q"]))

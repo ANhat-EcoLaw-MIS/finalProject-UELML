@@ -8,7 +8,7 @@
     <h1>{% if user %}Chào {{ user.name }},{% else %}Chào bạn,{% endif %}<br>đây là gợi ý dành riêng cho bạn</h1>
     <p class="muted">
       {% if not scenario.warm %}Bạn là <b>khách mới</b>: chưa có lịch sử mua nên chúng tôi gợi ý những món đang bán chạy nhất tuần này.
-      {% else %}Dựa trên {{ scenario.n }} lượt mua của bạn{% if scenario.n_web %} (có {{ scenario.n_web }} món mua trên web){% endif %}: món bạn hay mua lại, món mới hợp với bạn và hàng bán chạy.{% endif %}
+      {% else %}Dựa trên {{ scenario.n }} lượt mua của bạn{% if scenario.n_web %} (có {{ scenario.n_web }} món mua trên web){% endif %}: món bạn hay mua lại và món mới hợp với bạn.{% endif %}
     </p>
     <div class="hero-actions">
       <a class="btn" href="{{ url_for('products') }}">Mua sắm ngay</a>
@@ -19,8 +19,7 @@
     <p class="small muted">Tình huống hiện tại</p>
     <p class="hero-scen">{{ scenario_badge(scenario) }}</p>
     <ul class="hero-list small">
-      {% if scenario.warm %}<li>Mua lại món quen</li><li>Có thể bạn sẽ thích</li><li>Bán chạy 7 ngày qua</li>
-      {% else %}<li>Bán chạy 7 ngày qua</li>{% endif %}
+      {% for sh in shelves %}<li>{{ sh.title }}</li>{% endfor %}
     </ul>
   </div>
 </section>

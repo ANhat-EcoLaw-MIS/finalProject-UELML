@@ -57,7 +57,7 @@ INFO_PAGES = {
     "cach-goi-y": dict(title="Cách StyleRec gợi ý", intro=(
         "Gợi ý dựa trên lịch sử mua (chỉ kênh online), không dùng thông tin cá nhân như tuổi hay nơi ở. "
         "Mỗi mục trên trang chủ ứng với một bài toán và một model đã được đánh giá trên tập kiểm tra."),
-        sections=[("Bán chạy 7 ngày qua", ["Dành cho mọi khách, và là mục duy nhất của khách mới (chưa có lịch sử mua).",
+        sections=[("Bán chạy 7 ngày qua", ["Mục của khách mới (chưa có lịch sử mua), và là mục dự phòng khi không có gợi ý khác.",
                                            "Xếp theo số lượt bán trong 7 ngày gần nhất."]),
                   ("Mua lại món quen", ["Những món bạn từng mua, xếp theo khả năng mua lại của từng loại hàng "
                                         "và số ngày từ lần mua gần nhất."]),

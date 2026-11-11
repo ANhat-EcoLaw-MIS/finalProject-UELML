@@ -1,9 +1,11 @@
-"""Chạy web với dữ liệu THẬT của repo + model backend (ProductionRecommender).
+"""Chạy web với dữ liệu THẬT của repo + Orchestrator của team (ProductionRecommender).
 
     cd frontend
     python run_production.py              # http://127.0.0.1:5000
 
-Lần đầu fit model mất ~1–1,5 phút rồi lưu runtime/model_cache.pkl; các lần sau chỉ đọc cache (~20 giây).
+Model đọc từ orch_architecture/orchestrator.pkl (tải theo orchestrator_guide.md). Chưa có file thì web tự fit
+bằng build_default() của team (~1,5–2 phút) rồi lưu vào đó; các lần sau chỉ nạp file (~30 giây).
+STYLEREC_ORCH = đường dẫn khác tới orchestrator.pkl.
 Biến môi trường: STYLEREC_DATA (thư mục data của repo), STYLEREC_RUNTIME, STYLEREC_SECRET, PORT.
 """
 import logging
