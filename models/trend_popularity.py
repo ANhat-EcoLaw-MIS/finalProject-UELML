@@ -115,34 +115,3 @@ class TrendPopularityModel(BaseRecommender):
             [["article_id", "recent_volume", "trend_score", "final_score", "rank"]]
             .copy()
         )
-
-    def to_parquet(self, path):
-        self._require(hasattr(self, "ranking_"), "fit must be called before to_parquet")
-        path = Path(path)
-        self.ranking_.to_parquet(path, index=False)
-        if self.exclude_seen:
-            self.seen_.to_parquet(path.with_name(path.stem + "_seen.parquet"), index=False)
-        settings = {
-            "window_days": self.window_days,
-            "epsilon": self.epsilon,
-            "alpha": self.alpha,
-            "beta": self.beta,
-            "normalize": self.normalize,
-            "min_sales": self.min_sales,
-            "exclude_seen": self.exclude_seen,
-            "k": self.k,
-            "anchor_date": self.anchor_date_.isoformat(),
-        }
-        path.with_suffix(".json").write_text(json.dumps(settings), encoding="utf-8")
-
-    @classmethod
-    def from_parquet(cls, path):
-        path = Path(path)
-        settings = json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
-        anchor = settings.pop("anchor_date")
-        model = cls(**settings)
-        model.ranking_ = pd.read_parquet(path)
-        if model.exclude_seen:
-            model.seen_ = pd.read_parquet(path.with_name(path.stem + "_seen.parquet"))
-        model.anchor_date_ = pd.Timestamp(anchor)
-        return model

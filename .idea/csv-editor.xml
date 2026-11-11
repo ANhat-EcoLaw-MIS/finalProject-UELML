@@ -3,7 +3,14 @@
   <component name="CsvFileAttributes">
     <option name="attributeMap">
       <map>
-        <entry key="\dumpDataPreview">
+        <entry key="\evaluation_design\coldstart\results\paired_ci_df.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\evaluation_design\discovery\results\paired_ci_df_v1.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -11,6 +18,13 @@
           </value>
         </entry>
         <entry key="\evaluation_design\discovery\results\paired_ci_df_v2.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\evaluation_design\discovery\results\paired_ci_df_v3.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -66,7 +80,21 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="\final_test\frozen_results\ci_df_test.csv">
+        <entry key="\final_test\frozen_results\coldstart\ci_df_test.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\final_test\frozen_results\coldstart\paired_df_test.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\final_test\frozen_results\discovery\ci_df_test.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -80,7 +108,7 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="\final_test\frozen_results\paired_df_test.csv">
+        <entry key="\final_test\frozen_results\repurchase\ci_df_test.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -88,13 +116,6 @@
           </value>
         </entry>
         <entry key="\final_test\frozen_results\repurchase\paired_df_test.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\final_test\frozen_results\test_summary.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
