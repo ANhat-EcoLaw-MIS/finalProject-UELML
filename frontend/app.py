@@ -185,6 +185,8 @@ def create_app(recommender=None, catalog: Catalog | None = None, runtime_dir: Pa
             return None
         because_name = catalog.name_of(rec.because) if rec.because and catalog.has(rec.because) else ""
         reason = f"Vì bạn đã mua {because_name}" if because_name and rec.shelf != SHELF_CART else rec.reason
+        if reason in ("Bán chạy trong loại hàng bạn hay mua", "Bán chạy, bạn chưa mua"):
+            reason = ""
         if because_name and rec.shelf == SHELF_CART:
             reason = f"Hay được mua cùng {because_name}"
         return dict(p.to_json(), reason=reason, because=rec.because, because_name=because_name,

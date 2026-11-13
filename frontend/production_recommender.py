@@ -153,7 +153,7 @@ class ProductionRecommender:
     def _disc_rec(self, aid: str, because: str | None) -> Rec:
         if because:
             return Rec(aid, "Khách mua món bạn đã mua cũng mua món này", SHELF_DISCOVERY, because)
-        return Rec(aid, "Bán chạy trong loại hàng bạn hay mua", SHELF_DISCOVERY)
+        return Rec(aid, "", SHELF_DISCOVERY)
 
     @staticmethod
     def _balance(recs: list[Rec], k: int, min_because: int) -> list[Rec]:

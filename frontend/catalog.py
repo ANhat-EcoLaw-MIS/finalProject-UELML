@@ -167,8 +167,14 @@ class Catalog:
         g = lambda c: "" if pd.isna(r.get(c, "")) else str(r.get(c, ""))  # noqa: E731
         grp, typ = g("product_group_name"), g("product_type_name")
         hexcol = colour_hex(g("colour_group_name"))
-        img = next((f"img/products/{aid}{ext}" for ext in (".jpg", ".jpeg", ".png", ".webp")
-                    if (IMG_DIR / f"{aid}{ext}").exists()), None)
+        img = None
+        for rel in (aid, f"{aid[:3]}/{aid}", f"images/{aid[:3]}/{aid}"):
+            for ext in (".jpg", ".jpeg", ".png", ".webp"):
+                if (IMG_DIR / f"{rel}{ext}").exists():
+                    img = f"img/products/{rel}{ext}".replace("\\", "/")
+                    break
+            if img:
+                break
         return Product(
             article_id=aid, name=clean_name(g("prod_name")), type=typ, type_vi=TYPE_VI.get(typ, typ), group=grp,
             group_vi=GROUP_VI.get(grp, grp), index_group=g("index_group_name"), colour=g("colour_group_name"),
