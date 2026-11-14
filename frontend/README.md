@@ -17,13 +17,13 @@ chuyển theo, ví dụ từ khách mới sang khách mua ít.
 cd frontend
 pip install -r requirements.txt
 python run_production.py          # dữ liệu thật + model backend  -> http://127.0.0.1:5000
-flask --app app run --debug       # dev giao diện: 24 sản phẩm mẫu + MockRecommender (chạy ngay)
+flask --app app run --debug       # giống run_production.py nhưng bật chế độ debug của Flask
 python -m pytest -q               # test (dữ liệu mẫu, không cần fit model)
 ```
 
-- `run_production.py` dùng **Orchestrator của team**: nạp `orch_architecture/orchestrator.pkl` (tải theo `orchestrator_guide.md` ở gốc repo).
+- `run_production.py` dùng **Orchestrator của team**: nạp `orch_architecture/orchestrator.pkl` (tải theo `docs/orchestrator_guide.md` ở gốc repo).
   Chưa có file thì web tự fit bằng `build_default()` của team (khoảng 1,5–2 phút) rồi lưu vào đúng chỗ đó. Từ lần sau chỉ nạp file (khoảng 30 giây).
-  Cần chạy với thư viện cùng phiên bản lúc tạo pickle (xem `orchestrator_guide.md`).
+  Cần chạy với thư viện cùng phiên bản lúc tạo pickle (xem `docs/orchestrator_guide.md`).
 - Thanh **Demo** dưới header cho phép đổi nhanh tình huống: Khách mới (tạo tài khoản tạm), Khách mua ít, Khách hay mua lại,
   Khách thích khám phá. Nút **Đặt lại demo** xoá các đơn đã đặt của khách mẫu để demo lại từ đầu.
 - Muốn chọn lại khách mẫu: `python tools/pick_demo_users.py` (ghi đè `data/demo_users.json`).
@@ -35,7 +35,6 @@ models/ utils/ data/          backend (KHÔNG sửa từ phía web)
 frontend/
   recommender_port.py         hợp đồng web <-> recommender: Rec(article_id, reason, shelf, because), normalize()
   production_recommender.py   lớp nối: nạp Orchestrator (orch_architecture/), gọi orc.page(), đổi sang Rec + lý do tiếng Việt
-  mock_recommender.py         recommender giả cho dev/test (chỉ dùng với bộ dữ liệu mẫu)
   dataset.py                  đọc dữ liệu: load_full() (parquet của repo) / load_sample() (frontend/data)
   catalog.py                  danh mục sản phẩm, lịch sử mua, khách mẫu (web chỉ tra cứu, không gợi ý)
   store.py                    CSDL của web (SQLite runtime/stylerec.db): users, orders, order_items, web_transactions, events
@@ -103,4 +102,3 @@ SQLite đủ cho một server demo. Muốn mở rộng thì chỉ cần thay l�
 - Giá trong dataset đã chuẩn hoá. Web quy đổi minh hoạ ra VND (`catalog.to_vnd`).
 - Chưa có ảnh H&M: thẻ sản phẩm vẽ ảnh minh hoạ theo màu và nhóm hàng. Nếu có ảnh, đặt vào `static/img/products/<article_id>.jpg`.
 - Trang danh mục chỉ liệt kê 3.000 sản phẩm bán chạy gần nhất. Trang chi tiết mở được mọi sản phẩm trong `cleaned_art.parquet`.
-- `HANDOFF.md` là tài liệu của bản mockup cũ, chỉ để tham khảo. README này là bản hiện hành.

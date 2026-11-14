@@ -3,7 +3,7 @@
 {% macro err(k) %}{% if errors.get(k) %}<span class="err">{{ errors[k] }}</span>{% endif %}{% endmacro %}
 {% block content %}
 <h1>Thanh toán</h1>
-<form method="post" class="checkout" novalidate>
+<form method="post" class="checkout" novalidate onsubmit="this.querySelector('button[type=submit]').disabled=true">
   <div class="panel">
     <h2>Thông tin nhận hàng</h2>
     <label>Họ tên<input name="name" value="{{ form.name }}" autocomplete="name" required>{{ err('name') }}</label>

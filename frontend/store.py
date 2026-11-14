@@ -119,8 +119,9 @@ class Store:
 
     def save_user(self, u: dict):
         kind = u.get("kind") or ("temp" if u.get("temp") else "account")
-        with self._db() as con:
-            con.execute("INSERT OR REPLACE INTO users (id, name, email, password, customer_id, kind, created) "
+        with self._lock, self._db() as con:
+            verb = "INSERT OR REPLACE" if self.get_user(u["id"]) else "INSERT"   # người dùng mới: trùng email -> lỗi
+            con.execute(f"{verb} INTO users (id, name, email, password, customer_id, kind, created) "
                         "VALUES (?, ?, ?, ?, ?, ?, ?)",
                         (u["id"], u["name"], u.get("email", ""), u.get("password", ""), u.get("customer_id"),
                          kind, u.get("created", time.time())))

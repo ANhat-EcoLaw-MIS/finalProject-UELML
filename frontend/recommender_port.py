@@ -1,7 +1,7 @@
 """HỢP ĐỒNG giữa web (Flask) và recommender.
 
 Web chỉ biết hai hàm dưới đây và coi recommender là hộp đen. Recommender thật (production_recommender.py,
-bọc các model trong ../models) và recommender giả (mock_recommender.py) đều tuân theo hợp đồng này.
+bọc Orchestrator của team) và các recommender giả trong tests/ đều tuân theo hợp đồng này.
 
     recommend_for_user(user_id, k, session_purchases)  -> trang chủ (các mục gợi ý của một khách)
     recommend_for_cart(article_ids, k)                 -> giỏ hàng (mua kèm)

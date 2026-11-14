@@ -2,7 +2,7 @@
 
 Web KHÔNG tự tính gợi ý: recommender được tiêm vào create_app() (hợp đồng ở recommender_port.py).
 
-    flask --app app run --debug          # Flask tự gọi create_app(): dev nhanh: bộ dữ liệu mẫu + MockRecommender
+    flask --app app run --debug          # Flask tự gọi create_app(): dữ liệu thật + ProductionRecommender (như dưới)
     python run_production.py             # dữ liệu thật của repo + ProductionRecommender (model backend)
 """
 from __future__ import annotations
@@ -10,6 +10,8 @@ from __future__ import annotations
 import logging
 import os
 import re
+import secrets
+import sqlite3
 import time
 import uuid
 from dataclasses import replace
@@ -30,6 +32,7 @@ from store import EVENT_TYPES, Store
 
 HERE = Path(__file__).resolve().parent
 K_HOME, K_CART = 12, 6
+MAX_CART_LINES = 30          # giỏ nằm trong cookie (giới hạn ~4 KB): chặn số dòng để không bị mất giỏ
 CLIENT_EVENTS = {"impression", "click", "add_to_cart"}
 
 SHELF_META = {
@@ -107,19 +110,30 @@ def vnd(v) -> str:
     return f"{int(v):,}".replace(",", ".") + "đ"
 
 
+def _secret_key(runtime_dir) -> str:
+    """Khoá ký phiên đăng nhập: tạo ngẫu nhiên một lần, lưu trong runtime/ (ngoài git) để dùng lại khi khởi động lại."""
+    path = Path(runtime_dir) / "secret.key"
+    if not path.exists():
+        path.write_text(secrets.token_hex(32), encoding="utf-8")
+    return path.read_text(encoding="utf-8").strip()
+
+
 def create_app(recommender=None, catalog: Catalog | None = None, runtime_dir: Path | str | None = None,
                secret_key: str | None = None) -> Flask:
+    if recommender is None:   # flask --app app run: dựng giống run_production.py (dữ liệu thật + Orchestrator)
+        import dataset
+        from production_recommender import ProductionRecommender
+        tx, art = dataset.load_full()
+        catalog = catalog or Catalog(tx, art)
+        recommender = ProductionRecommender(tx, art)
     catalog = catalog or Catalog.sample()
-    if recommender is None:
-        from mock_recommender import MockRecommender
-        recommender = MockRecommender(catalog)
     recommender = ensure_recommender(recommender)
     store = Store(runtime_dir or os.environ.get("STYLEREC_RUNTIME", HERE / "runtime"),
                   sim_anchor=catalog.last_date + pd.Timedelta(days=1))
     store.fill_missing_prices(catalog.raw_price)   # đơn cũ (trước khi có cột price) -> giá theo thang dataset
 
     app = Flask(__name__)
-    app.secret_key = secret_key or os.environ.get("STYLEREC_SECRET", "stylerec-dev-secret")
+    app.secret_key = secret_key or os.environ.get("STYLEREC_SECRET") or _secret_key(store.dir)
     app.config.update(CATALOG=catalog, RECOMMENDER=recommender, STORE=store)
     app.jinja_env.filters["vnd"] = vnd
     app.jinja_env.filters["sw"] = lambda hexcol: Markup(f"--sw:{hexcol}")
@@ -185,8 +199,6 @@ def create_app(recommender=None, catalog: Catalog | None = None, runtime_dir: Pa
             return None
         because_name = catalog.name_of(rec.because) if rec.because and catalog.has(rec.because) else ""
         reason = f"Vì bạn đã mua {because_name}" if because_name and rec.shelf != SHELF_CART else rec.reason
-        if reason in ("Bán chạy trong loại hàng bạn hay mua", "Bán chạy, bạn chưa mua"):
-            reason = ""
         if because_name and rec.shelf == SHELF_CART:
             reason = f"Hay được mua cùng {because_name}"
         return dict(p.to_json(), reason=reason, because=rec.because, because_name=because_name,
@@ -255,7 +267,8 @@ def create_app(recommender=None, catalog: Catalog | None = None, runtime_dir: Pa
 
     def safe_next(default="index"):
         nxt = request.values.get("next", "")
-        return nxt if nxt.startswith("/") and not nxt.startswith("//") else url_for(default)
+        ok = nxt.startswith("/") and not nxt.startswith("//") and "\\" not in nxt and ":" not in nxt.split("?")[0]
+        return nxt if ok else url_for(default)
 
     @app.context_processor
     def inject():
@@ -337,6 +350,12 @@ def create_app(recommender=None, catalog: Catalog | None = None, runtime_dir: Pa
                 line["qty"] = min(line["qty"] + qty, 10)
                 break
         else:
+            if len(items) >= MAX_CART_LINES:
+                msg = f"Giỏ hàng tối đa {MAX_CART_LINES} sản phẩm khác nhau."
+                if wants_json():
+                    return jsonify(ok=False, error=msg), 400
+                flash(msg, "error")
+                return redirect(url_for("cart_page"))
             items.append(dict(article_id=aid, size=size, qty=qty, surface=surface, shelf=shelf, position=position))
         session.modified = True
         log("add_to_cart", article_id=aid, surface=surface or "product", shelf=shelf, position=position, value=qty)
@@ -378,7 +397,14 @@ def create_app(recommender=None, catalog: Catalog | None = None, runtime_dir: Pa
         form = dict(name=u.get("name", "") if u["kind"] != "demo" else "", phone="", address="",
                     shipping="standard", payment="cod")
         errors = {}
+        pending = session.get("pending_order") or ("SR" + time.strftime("%y%m%d") + uuid.uuid4().hex[:6].upper())
+        session["pending_order"] = pending
         if request.method == "POST":
+            existing = store.get_order(pending)
+            if existing and existing["uid"] == u["id"]:      # bấm "Đặt hàng" hai lần: không tạo đơn trùng
+                session["cart"] = []
+                session.pop("pending_order", None)
+                return redirect(url_for("order_page", oid=pending))
             form.update({k: request.form.get(k, "").strip() for k in form})
             if len(form["name"]) < 2:
                 errors["name"] = "Nhập họ tên người nhận."
@@ -393,7 +419,7 @@ def create_app(recommender=None, catalog: Catalog | None = None, runtime_dir: Pa
             if not errors:
                 before = scenario_of(u)
                 fee = 0 if ship_free and form["shipping"] == "standard" else SHIPPING[form["shipping"]][1]
-                oid = "SR" + time.strftime("%y%m%d") + uuid.uuid4().hex[:6].upper()
+                oid = pending
                 items = [dict(article_id=l["article_id"], name=l["product"].name, size=l["size"], qty=l["qty"],
                               price_vnd=l["product"].price_vnd, price=catalog.raw_price(l["article_id"]),
                               surface=l.get("surface", ""),
@@ -405,12 +431,18 @@ def create_app(recommender=None, catalog: Catalog | None = None, runtime_dir: Pa
                              shipping=form["shipping"], payment=form["payment"], name=form["name"],
                              phone=form["phone"], address=form["address"],
                              scenario_before=before["key"], scenario_after=after["key"])
-                store.save_order(order, customer_id=u.get("customer_id"))
+                try:
+                    store.save_order(order, customer_id=u.get("customer_id"))
+                except sqlite3.IntegrityError:      # request song song đã lưu đơn này
+                    session["cart"] = []
+                    session.pop("pending_order", None)
+                    return redirect(url_for("order_page", oid=oid))
                 store.log_events([dict(event="purchase", session_id=session_id(), user_id=u["id"],
                                        scenario=after["key"], surface=i["surface"] or "direct", shelf=i["shelf"],
                                        article_id=i["article_id"], position=i["position"], order_id=oid,
                                        value=i["qty"]) for i in items])
                 session["cart"] = []
+                session.pop("pending_order", None)
                 return redirect(url_for("order_page", oid=oid))
         return render_template("checkout.html", lines=lines, subtotal=subtotal, ship_free=ship_free, form=form,
                                errors=errors, shipping=SHIPPING, payment=PAYMENT)
@@ -481,9 +513,13 @@ def create_app(recommender=None, catalog: Catalog | None = None, runtime_dir: Pa
                 errors["password"] = "Mật khẩu tối thiểu 6 ký tự."
             if not errors:
                 uid = "u-" + uuid.uuid4().hex[:10]
-                store.save_user(dict(id=uid, name=form["name"], email=form["email"],
-                                     password=generate_password_hash(pw), customer_id=store.next_customer_id(),
-                                     created=time.time()))
+                try:
+                    store.save_user(dict(id=uid, name=form["name"], email=form["email"],
+                                         password=generate_password_hash(pw), customer_id=store.next_customer_id(),
+                                         created=time.time()))
+                except sqlite3.IntegrityError:
+                    errors["email"] = "Email đã được đăng ký."
+                    return render_template("signup.html", form=form, errors=errors)
                 login(uid, "account")
                 flash("Tạo tài khoản thành công. Bạn là khách mới: gợi ý đang dựa trên hàng bán chạy.", "ok")
                 return redirect(url_for("index"))

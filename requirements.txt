@@ -1,0 +1,9 @@
+# Thư viện cho phần ML (EDA, models, evaluation_design, final_test, orch_architecture)
+# Phiên bản khớp với lúc tạo orch_architecture/orchestrator.pkl (xem docs/orchestrator_guide.md)
+numpy==2.5.3
+pandas==3.0.6
+pyarrow==24.0.0
+scipy==1.18.1
+matplotlib
+jupyter
+# Web demo: xem thêm frontend/requirements.txt (flask, pytest)

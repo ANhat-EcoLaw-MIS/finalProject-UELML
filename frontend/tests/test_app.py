@@ -14,7 +14,6 @@ import pytest  # noqa: E402
 
 from app import create_app  # noqa: E402
 from catalog import Catalog  # noqa: E402
-from mock_recommender import MockRecommender  # noqa: E402
 from recommender_port import (SHELF_CART, SHELF_DISCOVERY, SHELF_POPULAR, SHELF_REPEAT, Rec,  # noqa: E402
                               normalize)
 
@@ -251,17 +250,6 @@ def test_wrong_recommender_rejected_and_normalize():
     recs = normalize(pd.DataFrame({"article_id": ["108775015", "108775015"], "score": [1, 2]}))
     assert recs == [Rec("0108775015", "", "for_you")]
     assert normalize([("1", "r", "weird"), {"article_id": 2, "shelf": "repeat"}, 3])[0].shelf == "for_you"
-
-
-def test_mock_recommender_contract():
-    m = MockRecommender(CATALOG)
-    cold = m.recommend_for_user(None)
-    assert cold and all(r.shelf == SHELF_POPULAR for r in cold)
-    warm = m.recommend_for_user(DEMO[0]["id"])
-    assert {SHELF_REPEAT, SHELF_DISCOVERY} <= {r.shelf for r in warm}
-    cart = m.recommend_for_cart([IDS[0]])
-    assert cart and IDS[0] not in [r.article_id for r in cart]
-    assert m.recommend_for_cart([]) == []
 
 
 def test_discovery_balance_keeps_because_items():

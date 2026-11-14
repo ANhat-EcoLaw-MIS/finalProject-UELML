@@ -1,3 +1,8 @@
+"""Ví dụ dùng Orchestrator đã fit: in các kệ gợi ý cho một khách.
+
+Chạy từ thư mục gốc repo (cần orch_architecture/orchestrator.pkl, xem docs/orchestrator_guide.md):
+    python -m orch_architecture.demo
+"""
 from orch_architecture.orchestrator import Orchestrator
 import pandas as pd
 

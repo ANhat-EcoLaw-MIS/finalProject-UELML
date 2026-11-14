@@ -3,3 +3,13 @@ __pycache__/
 .pytest_cache/
 .claude/
 orch_architecture/orchestrator.pkl
+
+# IDE / hệ điều hành
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Tài liệu làm việc cá nhân của nhóm (không đưa lên git)
+Đồ Án/
+tlieuthamkhao/

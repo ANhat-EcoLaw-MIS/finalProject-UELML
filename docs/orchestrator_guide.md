@@ -160,7 +160,7 @@ rules = {
 
 final_page = Orchestrator.trim(page, rules)
 ```
-* OUTPUT coi thử - trong file `demo.py` ở root nha:
+* OUTPUT coi thử - trong file `orch_architecture/demo.py` nha (chạy từ root: `python -m orch_architecture.demo`):
 ```
 .page(27682, article_names=names) -> {"Trending now":...},
 .trim(page(27682, article_names=names), rules = {"Buy it again": {"max_items": 8, "min_items": 2}}

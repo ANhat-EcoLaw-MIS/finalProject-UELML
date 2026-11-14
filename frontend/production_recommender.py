@@ -1,7 +1,7 @@
 """Lớp nối web <-> backend, dựa trên Orchestrator của team (orch_architecture/orchestrator.py).
 
 KHÔNG sửa code backend. File này:
-  1. nạp Orchestrator đã fit từ orch_architecture/orchestrator.pkl (file team chia sẻ, xem orchestrator_guide.md).
+  1. nạp Orchestrator đã fit từ orch_architecture/orchestrator.pkl (file team chia sẻ, xem docs/orchestrator_guide.md).
      Chưa có file thì tự dựng bằng đúng build_default() của team, fit rồi lưu vào cùng chỗ (như build_pickle.py);
   2. gọi orc.page(user) và đổi các kệ của team sang nhãn mục của web:
        "Trending now"       -> popular    (chỉ khách mới / dự phòng, đúng thiết kế Orchestrator)
@@ -153,12 +153,12 @@ class ProductionRecommender:
     def _disc_rec(self, aid: str, because: str | None) -> Rec:
         if because:
             return Rec(aid, "Khách mua món bạn đã mua cũng mua món này", SHELF_DISCOVERY, because)
-        return Rec(aid, "", SHELF_DISCOVERY)
+        return Rec(aid, "Bán chạy trong loại hàng bạn hay mua", SHELF_DISCOVERY)
 
     @staticmethod
     def _balance(recs: list[Rec], k: int, min_because: int) -> list[Rec]:
         """Giữ thứ tự của model nhưng bảo đảm tối thiểu min_because món có 'because' trong top k
-        (thay các món cat_pop cuối danh sách). Đây là bước lọc phía server mà orchestrator_guide.md khuyên."""
+        (thay các món cat_pop cuối danh sách). Đây là bước lọc phía server mà docs/orchestrator_guide.md khuyên."""
         top, rest = recs[:k], recs[k:]
         need = min(min_because, sum(1 for r in recs if r.because)) - sum(1 for r in top if r.because)
         extra = [r for r in rest if r.because][:max(need, 0)]
